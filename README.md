@@ -2,13 +2,13 @@
 
 A small Express and TypeScript backend for creating posts, reposts, quote posts, user profiles, and feeds. PostgreSQL is started with Docker Compose and accessed through `pg-promise`.
 
-> This project is a learning/prototype implementation. JWT authentication and basic authorization are wired into the application, while password provisioning, token lifecycle policy, database-integrity hardening, transactional quotas, and complete feed pagination remain planned work.
+> This project is a learning/prototype implementation. P0 route validation and JWT authentication/authorization are complete; persistence integrity, transactional quotas, and complete feed pagination remain planned P1 work.
 
 ## Implementation Status
 
 - **Complete:** dependency refresh, vulnerability remediation, app/server separation, standardized route inputs, JWT middleware, password-hash login, basic authorization, auth migration support, and HTTP/auth regression coverage.
-- **In progress:** password provisioning and token lifecycle policy, edge-case validation, adapter/database integration coverage, transactional quotas, and complete feed semantics.
-- **Verification baseline:** 7 Jest suites and 41 tests pass; the production build passes; npm audit reports zero vulnerabilities; ESLint reports zero errors with existing warnings.
+- **In progress:** adapter/database integration coverage, persistence integrity, transactional quotas, and complete feed semantics.
+- **Verification baseline:** 7 Jest suites and 46 tests pass; the production build passes; npm audit reports zero vulnerabilities; ESLint reports zero errors with existing warnings.
 
 ## Quick Start
 
@@ -50,7 +50,7 @@ npm test
 npx eslint src tests/
 ```
 
-`npm test` runs Jest with `dotenv/config`. The suite includes route and authentication tests, but adapter and full HTTP-to-database integration coverage remain planned.
+`npm test` runs Jest with `dotenv/config`. The suite covers use cases, HTTP routes, authentication, authorization, and edge-case validation; full HTTP-to-database integration coverage remains planned.
 
 ## Configuration
 

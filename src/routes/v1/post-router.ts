@@ -5,6 +5,11 @@ import { database } from "../connection";
 import PostRepositoryPostgreAdapter from "../../infra/adapters/PostRepositoryPostgreAdapter";
 import QuoteRepositoryPostgreAdapter from "../../infra/adapters/QuoteRepositoryPostgreAdapter";
 import PostController from "../../controllers/PostController";
+import {
+  validateFeedRequest,
+  validatePostRequest,
+  validateReferencedPostRequest,
+} from "../../middleware/validateRequest";
 
 const postRouterV1 = Router();
 const cache = new NodeCache({ stdTTL: 10, checkperiod: 20 }); // Numbers in seconds
@@ -16,6 +21,7 @@ const controller = new PostController(
 
 postRouterV1.post(
   "/v1/post/feed",
+  validateFeedRequest,
   // Set cache key
   (req: Request, res: Response, next: NextFunction) => {
     req.params.cacheKey = `post|homepage|${JSON.stringify({
@@ -62,7 +68,7 @@ postRouterV1.post(
   },
 );
 
-postRouterV1.post("/v1/post", async (req: Request, res: Response) => {
+postRouterV1.post("/v1/post", validatePostRequest, async (req: Request, res: Response) => {
   try {
     if (req.body.userId && req.body.userId !== req.authenticatedUserId) {
       return res
@@ -86,7 +92,7 @@ postRouterV1.post("/v1/post", async (req: Request, res: Response) => {
   }
 });
 
-postRouterV1.post("/v1/repost", async (req: Request, res: Response) => {
+postRouterV1.post("/v1/repost", validateReferencedPostRequest, async (req: Request, res: Response) => {
   try {
     if (req.body.userId && req.body.userId !== req.authenticatedUserId) {
       return res
@@ -118,7 +124,7 @@ postRouterV1.post("/v1/repost", async (req: Request, res: Response) => {
   }
 });
 
-postRouterV1.post("/v1/quote-post", async (req: Request, res: Response) => {
+postRouterV1.post("/v1/quote-post", validateReferencedPostRequest, async (req: Request, res: Response) => {
   try {
     if (req.body.userId && req.body.userId !== req.authenticatedUserId) {
       return res

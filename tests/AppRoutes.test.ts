@@ -135,6 +135,19 @@ describe("HTTP routes", () => {
     expect(mockDoPost).not.toHaveBeenCalled();
   });
 
+  it.each([
+    ["whitespace-only text", "   "],
+    ["non-string text", 123],
+    ["text above the limit", "a".repeat(778)],
+  ])("rejects %s", async (_label, text) => {
+    const response = await request(app).post("/v1/post").set("Authorization", authorization).send({
+      text,
+    });
+
+    expect(response.status).toBe(400);
+    expect(mockDoPost).not.toHaveBeenCalled();
+  });
+
   it("rejects a repost without an original post", async () => {
     const response = await request(app)
       .post("/v1/repost")
@@ -148,6 +161,16 @@ describe("HTTP routes", () => {
     expect(mockDoRepost).not.toHaveBeenCalled();
   });
 
+  it("rejects a repost with an invalid original post ID", async () => {
+    const response = await request(app).post("/v1/repost").set("Authorization", authorization).send({
+      text: "A repost",
+      originalPostId: "not-a-uuid",
+    });
+
+    expect(response.status).toBe(400);
+    expect(mockDoRepost).not.toHaveBeenCalled();
+  });
+
   it("delegates a valid repost", async () => {
     const response = await request(app)
       .post("/v1/repost")
@@ -155,14 +178,14 @@ describe("HTTP routes", () => {
       .send({
         userId: "user-id",
         text: "A repost",
-        originalPostId: "post-id",
+        originalPostId: "11111111-1111-4111-8111-111111111111",
       });
 
     expect(response.status).toBe(200);
     expect(mockDoRepost).toHaveBeenCalledWith({
       userId: "user-id",
       text: "A repost",
-      postId: "post-id",
+      postId: "11111111-1111-4111-8111-111111111111",
     });
   });
 
@@ -186,14 +209,14 @@ describe("HTTP routes", () => {
       .send({
         userId: "user-id",
         text: "A quote",
-        originalPostId: "post-id",
+        originalPostId: "11111111-1111-4111-8111-111111111111",
       });
 
     expect(response.status).toBe(200);
     expect(mockDoQuotePost).toHaveBeenCalledWith({
       userId: "user-id",
       text: "A quote",
-      postId: "post-id",
+      postId: "11111111-1111-4111-8111-111111111111",
     });
   });
 
@@ -223,6 +246,16 @@ describe("HTTP routes", () => {
 
     expect(response.status).toBe(403);
     expect(mockGetHomepage).not.toHaveBeenCalledWith({ userId: "another-user-id" });
+  });
+
+  it("rejects a feed filter with the wrong type", async () => {
+    const response = await request(app)
+      .post("/v1/post/feed")
+      .set("Authorization", authorization)
+      .send({ from: 123 });
+
+    expect(response.status).toBe(400);
+    expect(mockGetHomepage).not.toHaveBeenCalled();
   });
 
   it("delegates valid user profile and username requests", async () => {

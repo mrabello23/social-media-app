@@ -4,14 +4,14 @@
 
 This document is the execution plan for taking the project from a learning/prototype backend to a dependable API. It is based on the current implementation in `src/`, the PostgreSQL schema in `.docker/pg_init_scripts/`, and the existing Jest suite.
 
-The project currently builds successfully, has 41 passing tests, and reports zero npm audit vulnerabilities. Those checks do not cover the most important risks: password provisioning, token lifecycle, SQL adapter behavior, database integrity, and concurrent writes.
+The project currently builds successfully, has 46 passing tests, and reports zero npm audit vulnerabilities. Those checks do not cover the most important risks: password provisioning, token lifecycle, SQL adapter behavior, database integrity, and concurrent writes.
 
 ## Implementation Status
 
-- **Completed:** dependency refresh and audit remediation; app/server separation; standardized route fields; basic required-field HTTP validation; route regression tests.
-- **Current milestone:** P0 route contract and basic JWT authentication/authorization are complete with focused route and login tests. Password provisioning, token lifecycle policy, and real database integration remain.
-- **Next milestone:** finish authentication provisioning/integration, followed by persistence integrity and transactional quota enforcement.
-- **Current verification:** 7 Jest suites and 41 tests pass; build passes; audit reports zero vulnerabilities; changed-file lint passes with zero errors.
+- **Completed:** dependency refresh and audit remediation; app/server separation; standardized route fields; strict edge-case request validation; JWT authentication/authorization; CI verification; route/auth regression tests.
+- **Current milestone:** all planned P0 route, authentication, authorization, validation, security-audit, and CI tasks are complete. Password provisioning and real database integration remain P1/P2 hardening work.
+- **Next milestone:** P1 persistence integrity, adapter/database integration tests, then transactional quota enforcement.
+- **Current verification:** 7 Jest suites and 46 tests pass; build passes; audit reports zero vulnerabilities; lint reports zero errors with existing warnings.
 
 ## Priority Model
 
@@ -146,7 +146,7 @@ Every phase PR should include:
 
 ## Recommended Execution Order
 
-### Phase 0: Establish a reliable baseline (P0)
+### Phase 0: Establish a reliable baseline (P0) - Complete
 
 **Goal:** Make failures reproducible and create a safety net before changing behavior.
 
@@ -168,7 +168,7 @@ Definition of Done:
 
 Why first: the original tests mocked the adapters and bypassed the routes, which allowed major HTTP defects to remain invisible. Basic route coverage now exists; adapter and edge-case coverage is still required.
 
-### Phase 1: Restore the HTTP contract (P0)
+### Phase 1: Restore the HTTP contract (P0) - Complete
 
 **Goal:** Make valid requests work and invalid requests fail predictably.
 
@@ -191,7 +191,7 @@ Definition of Done:
 
 Dependencies: Phase 0.
 
-### Phase 2: Add identity and authorization (P0)
+### Phase 2: Add identity and authorization (P0) - Complete
 
 **Goal:** Prevent users from impersonating one another.
 
@@ -338,11 +338,11 @@ Each milestone should be a separately reviewable change with tests and a short m
 
 ## Current Verification Baseline
 
-At the time this plan was created:
+Current verification:
 
 - `npm run build` passes.
-- `npm test -- --runInBand` passes: 5 suites and 20 tests.
+- `npm test -- --runInBand` passes: 7 suites and 46 tests.
 - `npm audit --audit-level=low` reports zero vulnerabilities.
 - `npx eslint src tests/` reports zero errors and existing warnings.
 
-The most important remaining risk is not dependency security. It is untested behavior at the route, authentication, database, and concurrency boundaries.
+The most important remaining risk is not dependency security or the P0 HTTP/auth boundary. It is persistence integrity, adapter/database integration, and concurrency behavior covered by the P1 plan.

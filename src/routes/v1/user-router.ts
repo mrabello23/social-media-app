@@ -6,6 +6,7 @@ import UserController from "../../controllers/UserController";
 import PostRepositoryPostgreAdapter from "../../infra/adapters/PostRepositoryPostgreAdapter";
 import UserRepositoryPostgreAdapter from "../../infra/adapters/UserRepositoryPostgreAdapter";
 import QuoteRepositoryPostgreAdapter from "../../infra/adapters/QuoteRepositoryPostgreAdapter";
+import { validateFeedRequest } from "../../middleware/validateRequest";
 
 const userRouterV1 = Router();
 const controller = new UserController(
@@ -29,6 +30,7 @@ const validateCache = (req: Request, res: Response, next: NextFunction) => {
 
 userRouterV1.post(
   "/v1/user/profile",
+  validateFeedRequest,
   (req: Request, res: Response, next: NextFunction) => {
     req.params.cacheKey = `user|profile|${req.authenticatedUserId}`;
     return next();

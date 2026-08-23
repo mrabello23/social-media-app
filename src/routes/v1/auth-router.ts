@@ -5,6 +5,7 @@ import AuthController from "../../controllers/AuthController";
 import UserRepositoryPostgreAdapter from "../../infra/adapters/UserRepositoryPostgreAdapter";
 import UserRepository from "../../infra/repositories/UserRepository";
 import { database } from "../connection";
+import { validateLoginRequest } from "../../middleware/validateRequest";
 
 const createAuthRouter = (
   jwtSecret: string,
@@ -13,7 +14,7 @@ const createAuthRouter = (
   const authRouter = Router();
   const controller = new AuthController(userRepository, jwtSecret);
 
-  authRouter.post("/v1/auth/login", async (req: Request, res: Response) => {
+  authRouter.post("/v1/auth/login", validateLoginRequest, async (req: Request, res: Response) => {
     const { email, password } = req.body;
 
     if (typeof email !== "string" || !email || typeof password !== "string" || !password) {
