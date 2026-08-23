@@ -18,7 +18,11 @@ postRouterV1.post(
   "/v1/post/feed",
   // Set cache key
   (req: Request, res: Response, next: NextFunction) => {
-    req.params.cacheKey = `post|homepage|${req.body.user}`;
+    req.params.cacheKey = `post|homepage|${JSON.stringify({
+      userId: req.body.userId,
+      from: req.body.from,
+      to: req.body.to,
+    })}`;
     return next();
   },
   // Validate cache
@@ -51,15 +55,15 @@ postRouterV1.post(
 
 postRouterV1.post("/v1/post", async (req: Request, res: Response) => {
   try {
-    if (req.body.user) {
-      return res.status(500).send({ success: false, message: 'Param "user" not found.' });
+    if (!req.body.userId) {
+      return res.status(400).send({ success: false, message: 'Param "userId" not found.' });
     }
 
-    if (req.body.text) {
-      return res.status(500).send({ success: false, message: 'Param "text" not found.' });
+    if (!req.body.text) {
+      return res.status(400).send({ success: false, message: 'Param "text" not found.' });
     }
 
-    await controller.doPost({ userId: req.body.user, text: req.body.text });
+    await controller.doPost({ userId: req.body.userId, text: req.body.text });
 
     return res.send({ success: true, message: "Ok" });
   } catch (error) {
@@ -73,24 +77,22 @@ postRouterV1.post("/v1/post", async (req: Request, res: Response) => {
 
 postRouterV1.post("/v1/repost", async (req: Request, res: Response) => {
   try {
-    if (req.body.user) {
-      return res.status(500).send({ success: false, message: 'Param "user" not found.' });
+    if (!req.body.userId) {
+      return res.status(400).send({ success: false, message: 'Param "userId" not found.' });
     }
 
-    if (req.body.text) {
-      return res.status(500).send({ success: false, message: 'Param "text" not found.' });
+    if (!req.body.text) {
+      return res.status(400).send({ success: false, message: 'Param "text" not found.' });
     }
 
-    if (req.body.original_post_id) {
-      return res
-        .status(500)
-        .send({ success: false, message: 'Param "original_post_id" not found.' });
+    if (!req.body.originalPostId) {
+      return res.status(400).send({ success: false, message: 'Param "originalPostId" not found.' });
     }
 
     await controller.doRepost({
-      userId: req.body.user,
+      userId: req.body.userId,
       text: req.body.text,
-      postId: req.body.original_post_id,
+      postId: req.body.originalPostId,
     });
 
     return res.send({ success: true, message: "Ok" });
@@ -105,24 +107,22 @@ postRouterV1.post("/v1/repost", async (req: Request, res: Response) => {
 
 postRouterV1.post("/v1/quote-post", async (req: Request, res: Response) => {
   try {
-    if (req.body.user) {
-      return res.status(500).send({ success: false, message: 'Param "user" not found.' });
+    if (!req.body.userId) {
+      return res.status(400).send({ success: false, message: 'Param "userId" not found.' });
     }
 
-    if (req.body.text) {
-      return res.status(500).send({ success: false, message: 'Param "text" not found.' });
+    if (!req.body.text) {
+      return res.status(400).send({ success: false, message: 'Param "text" not found.' });
     }
 
-    if (req.body.original_post_id) {
-      return res
-        .status(500)
-        .send({ success: false, message: 'Param "original_post_id" not found.' });
+    if (!req.body.originalPostId) {
+      return res.status(400).send({ success: false, message: 'Param "originalPostId" not found.' });
     }
 
     await controller.doQuotePost({
-      userId: req.body.user,
+      userId: req.body.userId,
       text: req.body.text,
-      postId: req.body.original_post_id,
+      postId: req.body.originalPostId,
     });
 
     return res.send({ success: true, message: "Ok" });
