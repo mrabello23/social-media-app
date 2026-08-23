@@ -30,17 +30,19 @@ const validateCache = (req: Request, res: Response, next: NextFunction) => {
 userRouterV1.post(
   "/v1/user/profile",
   (req: Request, res: Response, next: NextFunction) => {
-    req.params.cacheKey = `user|profile|${req.body.userId}`;
+    req.params.cacheKey = `user|profile|${req.authenticatedUserId}`;
     return next();
   },
   validateCache,
   async (req: Request, res: Response) => {
     try {
-      if (!req.body.userId) {
-        return res.status(400).send({ success: false, message: 'Param "userId" not found.' });
+      if (req.body.userId && req.body.userId !== req.authenticatedUserId) {
+        return res
+          .status(403)
+          .send({ success: false, message: "User identity does not match token." });
       }
 
-      const returnData = await controller.getUserProfile(req.body.userId);
+      const returnData = await controller.getUserProfile(req.authenticatedUserId!);
       cache.set(req.params.cacheKey, returnData);
 
       return res.send({ success: true, message: "Ok", data: returnData });

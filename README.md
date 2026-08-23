@@ -2,13 +2,13 @@
 
 A small Express and TypeScript backend for creating posts, reposts, quote posts, user profiles, and feeds. PostgreSQL is started with Docker Compose and accessed through `pg-promise`.
 
-> This project is a learning/prototype implementation. Authentication, database-integrity hardening, transactional quotas, and complete feed pagination remain planned work.
+> This project is a learning/prototype implementation. JWT authentication and basic authorization are wired into the application, while password provisioning, token lifecycle policy, database-integrity hardening, transactional quotas, and complete feed pagination remain planned work.
 
 ## Implementation Status
 
-- **Complete:** dependency refresh, vulnerability remediation, app/server separation, standardized `userId` route inputs, basic required-field responses, and HTTP route regression coverage.
-- **In progress:** edge-case validation, authentication and authorization, adapter/database integration coverage, transactional quotas, and complete feed semantics.
-- **Verification baseline:** 6 Jest suites and 31 tests pass; the production build passes; npm audit reports zero vulnerabilities; ESLint reports zero errors with existing warnings.
+- **Complete:** dependency refresh, vulnerability remediation, app/server separation, standardized route inputs, JWT middleware, password-hash login, basic authorization, auth migration support, and HTTP/auth regression coverage.
+- **In progress:** password provisioning and token lifecycle policy, edge-case validation, adapter/database integration coverage, transactional quotas, and complete feed semantics.
+- **Verification baseline:** 7 Jest suites and 41 tests pass; the production build passes; npm audit reports zero vulnerabilities; ESLint reports zero errors with existing warnings.
 
 ## Quick Start
 
@@ -40,7 +40,7 @@ Stop PostgreSQL with:
 docker-compose down
 ```
 
-The database initialization scripts run when the PostgreSQL volume is created for the first time. To recreate the database from scratch, remove the Compose volume after stopping the service.
+The database initialization scripts run when the PostgreSQL volume is created for the first time. The authentication schema adjustment is also in [02_auth_migration.sql](.docker/pg_init_scripts/02_auth_migration.sql); apply it manually to an existing database or recreate the Compose volume. To recreate the database from scratch, remove the Compose volume after stopping the service.
 
 ### Development and tests
 
@@ -50,7 +50,7 @@ npm test
 npx eslint src tests/
 ```
 
-`npm test` runs Jest with `dotenv/config`. The tests are primarily use-case tests with mocked adapters; they do not provide full HTTP-to-database integration coverage.
+`npm test` runs Jest with `dotenv/config`. The suite includes route and authentication tests, but adapter and full HTTP-to-database integration coverage remain planned.
 
 ## Configuration
 
@@ -60,6 +60,7 @@ Create `.env` from `.env-example`:
 ENVIRONMENT=LOCAL
 PORT=3000
 DB_CONNECTION=postgres://postgres:passworddb@localhost:5432/postgres
+  JWT_SECRET=replace-with-a-long-random-secret
 ```
 
 The application currently defaults missing values to empty strings, so a missing or malformed configuration should be treated as a startup/configuration error rather than relying on the defaults.
@@ -71,6 +72,7 @@ Base URL: `http://localhost:3000`
 | Method | Endpoint             | Purpose                               |
 | ------ | -------------------- | ------------------------------------- |
 | GET    | `/`                  | Health check                          |
+| POST   | `/v1/auth/login`     | Exchange email/password for a JWT     |
 | POST   | `/v1/post/feed`      | Get the first page of the feed        |
 | POST   | `/v1/post`           | Create an original post               |
 | POST   | `/v1/repost`         | Create a repost                       |
@@ -79,6 +81,23 @@ Base URL: `http://localhost:3000`
 | GET    | `/v1/user/:username` | Get a user by username                |
 
 ### Request payloads
+
+Login:
+
+```json
+{
+  "email": "user1@email.com",
+  "password": "your-password"
+}
+```
+
+The response contains an `accessToken`. Send it on protected requests:
+
+```http
+Authorization: Bearer <accessToken>
+```
+
+The current test data does not provision password hashes, so a usable login credential must be added through the planned seed/migration flow.
 
 Create an original post:
 
@@ -109,7 +128,7 @@ Get a feed:
 }
 ```
 
-All feed fields are optional. `userId` selects the user's posts; `from` and `to` filter by `created_at`. The current implementation always returns page 1. Authentication is not yet implemented, so `userId` is currently client-supplied and must not be treated as a trusted identity.
+All feed fields are optional. `userId` selects the authenticated user's posts; `from` and `to` filter by `created_at`. The current implementation always returns page 1. For writes and profiles, the authenticated JWT subject is authoritative; a supplied body `userId` must match it.
 
 An Insomnia collection with example requests is available at [docs/Insomnia_2023-01-27.json](docs/Insomnia_2023-01-27.json).
 
@@ -158,7 +177,7 @@ Feeds return `posts` and `quotes` as separate arrays. They are not merged into o
 ## Known Gaps and Recommended Order
 
 1. Complete edge-case route validation and test all malformed inputs, boundaries, and no-write failures.
-2. Add authentication and derive the acting user from the authenticated identity instead of the request body.
+2. Complete authentication provisioning, migration, login integration tests, and authorization policy.
 3. Return explicit not-found results and map them to 404 responses.
 4. Add a foreign key for `post.original_post_id` and validate target types explicitly.
 5. Enforce the daily quota transactionally, preferably with a database-backed counter or transaction/locking strategy.

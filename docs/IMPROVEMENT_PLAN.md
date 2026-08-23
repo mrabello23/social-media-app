@@ -4,14 +4,14 @@
 
 This document is the execution plan for taking the project from a learning/prototype backend to a dependable API. It is based on the current implementation in `src/`, the PostgreSQL schema in `.docker/pg_init_scripts/`, and the existing Jest suite.
 
-The project currently builds successfully, has 31 passing tests, and reports zero npm audit vulnerabilities. Those checks do not cover the most important risks: authentication, SQL adapter behavior, database integrity, and concurrent writes.
+The project currently builds successfully, has 41 passing tests, and reports zero npm audit vulnerabilities. Those checks do not cover the most important risks: password provisioning, token lifecycle, SQL adapter behavior, database integrity, and concurrent writes.
 
 ## Implementation Status
 
 - **Completed:** dependency refresh and audit remediation; app/server separation; standardized route fields; basic required-field HTTP validation; route regression tests.
-- **Current milestone:** P0 route contract is complete at the basic success/failure level. Edge-case validation and security hardening remain.
-- **Next milestone:** authentication and authorization, followed by persistence integrity and transactional quota enforcement.
-- **Current verification:** 6 Jest suites and 31 tests pass; build passes; audit reports zero vulnerabilities; changed-file lint passes with zero errors.
+- **Current milestone:** P0 route contract and basic JWT authentication/authorization are complete with focused route and login tests. Password provisioning, token lifecycle policy, and real database integration remain.
+- **Next milestone:** finish authentication provisioning/integration, followed by persistence integrity and transactional quota enforcement.
+- **Current verification:** 7 Jest suites and 41 tests pass; build passes; audit reports zero vulnerabilities; changed-file lint passes with zero errors.
 
 ## Priority Model
 

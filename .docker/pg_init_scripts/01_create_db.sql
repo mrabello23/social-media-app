@@ -4,7 +4,7 @@ CREATE TABLE "user" (
     "name" character varying(200),
     "email" character varying(150) UNIQUE NOT NULL,
     "username" character varying(14) UNIQUE NOT NULL,
-    "userpass" character varying(20),
+    "userpass" character varying(255),
     "created_at" timestamp without time zone DEFAULT CURRENT_TIMESTAMP
 );
 

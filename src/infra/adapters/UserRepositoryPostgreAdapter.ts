@@ -1,6 +1,6 @@
 import Database from "../Database";
 import User from "../../entities/User";
-import UserRepository from "../repositories/UserRepository";
+import UserRepository, { AuthUser } from "../repositories/UserRepository";
 
 export default class UserRepositoryPostgreAdapter implements UserRepository {
   constructor(readonly db: Database) {}
@@ -17,5 +17,14 @@ export default class UserRepositoryPostgreAdapter implements UserRepository {
 
     if (data.length > 0) [data] = data;
     return new User(data);
+  }
+
+  async getByEmail(email: string): Promise<AuthUser | null> {
+    const data = await this.db.query(
+      'SELECT id, userpass AS "passwordHash" FROM public.user WHERE email = $1',
+      [email],
+    );
+
+    return data.length > 0 ? data[0] : null;
   }
 }
