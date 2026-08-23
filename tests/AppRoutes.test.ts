@@ -1,0 +1,171 @@
+import request from "supertest";
+
+const mockDoPost = jest.fn();
+const mockDoRepost = jest.fn();
+const mockDoQuotePost = jest.fn();
+const mockGetHomepage = jest.fn();
+const mockGetUserProfile = jest.fn();
+const mockGetUserData = jest.fn();
+
+function createPostControllerMock() {
+  return jest.fn().mockImplementation(() => ({
+    doPost: mockDoPost,
+    doRepost: mockDoRepost,
+    doQuotePost: mockDoQuotePost,
+    getHomepage: mockGetHomepage,
+  }));
+}
+
+jest.mock("../src/controllers/PostController", createPostControllerMock);
+
+function createUserControllerMock() {
+  return jest.fn().mockImplementation(() => ({
+    getUserProfile: mockGetUserProfile,
+    getUserData: mockGetUserData,
+  }));
+}
+
+jest.mock("../src/controllers/UserController", createUserControllerMock);
+
+// Jest mocks must be registered before the app imports its controllers.
+// eslint-disable-next-line import/first
+import app from "../src/app";
+
+afterEach(() => {
+  jest.clearAllMocks();
+  mockDoPost.mockResolvedValue(undefined);
+  mockDoRepost.mockResolvedValue(undefined);
+  mockDoQuotePost.mockResolvedValue(undefined);
+  mockGetHomepage.mockResolvedValue({
+    posts: [],
+    quotes: [],
+    previousPage: 1,
+    nextPage: 2,
+  });
+  mockGetUserProfile.mockResolvedValue({
+    profile: {},
+    feed: { posts: [], previousPage: 1, nextPage: 2 },
+    totalPosts: 0,
+  });
+  mockGetUserData.mockResolvedValue({});
+});
+
+describe("HTTP routes", () => {
+  it("returns a successful health check without starting a listener", async () => {
+    const response = await request(app).get("/");
+
+    expect(response.status).toBe(200);
+    expect(response.body.status).toBe("Ok");
+  });
+
+  it("delegates a valid post request with the standardized userId field", async () => {
+    const response = await request(app).post("/v1/post").send({
+      userId: "user-id",
+      text: "A valid post",
+    });
+
+    expect(response.status).toBe(200);
+    expect(mockDoPost).toHaveBeenCalledWith({ userId: "user-id", text: "A valid post" });
+  });
+
+  it("rejects a post without userId", async () => {
+    const response = await request(app).post("/v1/post").send({ text: "A post" });
+
+    expect(response.status).toBe(400);
+    expect(mockDoPost).not.toHaveBeenCalled();
+  });
+
+  it("rejects a post with empty text", async () => {
+    const response = await request(app).post("/v1/post").send({
+      userId: "user-id",
+      text: "",
+    });
+
+    expect(response.status).toBe(400);
+    expect(mockDoPost).not.toHaveBeenCalled();
+  });
+
+  it("rejects a repost without an original post", async () => {
+    const response = await request(app).post("/v1/repost").send({
+      userId: "user-id",
+      text: "A repost",
+    });
+
+    expect(response.status).toBe(400);
+    expect(mockDoRepost).not.toHaveBeenCalled();
+  });
+
+  it("delegates a valid repost", async () => {
+    const response = await request(app).post("/v1/repost").send({
+      userId: "user-id",
+      text: "A repost",
+      originalPostId: "post-id",
+    });
+
+    expect(response.status).toBe(200);
+    expect(mockDoRepost).toHaveBeenCalledWith({
+      userId: "user-id",
+      text: "A repost",
+      postId: "post-id",
+    });
+  });
+
+  it("rejects a quote post without an original post", async () => {
+    const response = await request(app).post("/v1/quote-post").send({
+      userId: "user-id",
+      text: "A quote",
+    });
+
+    expect(response.status).toBe(400);
+    expect(mockDoQuotePost).not.toHaveBeenCalled();
+  });
+
+  it("delegates a valid quote post", async () => {
+    const response = await request(app).post("/v1/quote-post").send({
+      userId: "user-id",
+      text: "A quote",
+      originalPostId: "post-id",
+    });
+
+    expect(response.status).toBe(200);
+    expect(mockDoQuotePost).toHaveBeenCalledWith({
+      userId: "user-id",
+      text: "A quote",
+      postId: "post-id",
+    });
+  });
+
+  it("delegates a valid feed request", async () => {
+    const response = await request(app).post("/v1/post/feed").send({
+      userId: "user-id",
+      from: "2023-01-01 00:00:00",
+      to: "2023-01-31 23:59:59",
+    });
+
+    expect(response.status).toBe(200);
+    expect(mockGetHomepage).toHaveBeenCalledWith({
+      userId: "user-id",
+      from: "2023-01-01 00:00:00",
+      to: "2023-01-31 23:59:59",
+    });
+  });
+
+  it("delegates valid user profile and username requests", async () => {
+    const profileResponse = await request(app).post("/v1/user/profile").send({
+      userId: "user-id",
+    });
+    const userResponse = await request(app).get("/v1/user/usr1abc");
+
+    expect(profileResponse.status).toBe(200);
+    expect(userResponse.status).toBe(200);
+    expect(mockGetUserProfile).toHaveBeenCalledWith("user-id");
+    expect(mockGetUserData).toHaveBeenCalledWith("usr1abc");
+  });
+
+  it("rejects a profile request without userId", async () => {
+    const response = await request(app).post("/v1/user/profile").send({});
+
+    expect(response.status).toBe(400);
+    expect(mockGetUserProfile).not.toHaveBeenCalled();
+  });
+});

@@ -2,7 +2,13 @@
 
 A small Express and TypeScript backend for creating posts, reposts, quote posts, user profiles, and feeds. PostgreSQL is started with Docker Compose and accessed through `pg-promise`.
 
-> This project is a learning/prototype implementation. The known limitations below are important when running it: the current HTTP validation checks are inverted, so valid requests may be rejected before reaching the use cases. The use-case tests pass because they bypass the HTTP routes.
+> This project is a learning/prototype implementation. Authentication, database-integrity hardening, transactional quotas, and complete feed pagination remain planned work.
+
+## Implementation Status
+
+- **Complete:** dependency refresh, vulnerability remediation, app/server separation, standardized `userId` route inputs, basic required-field responses, and HTTP route regression coverage.
+- **In progress:** edge-case validation, authentication and authorization, adapter/database integration coverage, transactional quotas, and complete feed semantics.
+- **Verification baseline:** 6 Jest suites and 31 tests pass; the production build passes; npm audit reports zero vulnerabilities; ESLint reports zero errors with existing warnings.
 
 ## Quick Start
 
@@ -78,7 +84,7 @@ Create an original post:
 
 ```json
 {
-  "user": "efe38133-df4c-4ab5-b9c2-d585931eb946",
+  "userId": "efe38133-df4c-4ab5-b9c2-d585931eb946",
   "text": "A post"
 }
 ```
@@ -87,9 +93,9 @@ Create a repost or quote post:
 
 ```json
 {
-  "user": "efe38133-df4c-4ab5-b9c2-d585931eb946",
+  "userId": "efe38133-df4c-4ab5-b9c2-d585931eb946",
   "text": "My comment",
-  "original_post_id": "post-uuid"
+  "originalPostId": "post-uuid"
 }
 ```
 
@@ -103,7 +109,7 @@ Get a feed:
 }
 ```
 
-All feed fields are optional. `userId` selects the user's posts; `from` and `to` filter by `created_at`. The current implementation always returns page 1. The create routes currently read `user`, while the feed/profile routes use `userId`; this inconsistency should be resolved before treating the API contract as stable.
+All feed fields are optional. `userId` selects the user's posts; `from` and `to` filter by `created_at`. The current implementation always returns page 1. Authentication is not yet implemented, so `userId` is currently client-supplied and must not be treated as a trusted identity.
 
 An Insomnia collection with example requests is available at [docs/Insomnia_2023-01-27.json](docs/Insomnia_2023-01-27.json).
 
@@ -111,8 +117,8 @@ An Insomnia collection with example requests is available at [docs/Insomnia_2023
 
 - Post and quote text must be non-empty and no longer than 777 characters.
 - A user is intended to create at most five posts, reposts, or quote posts per day.
-- Reposts require an `original_post_id` and are intended to reject reposting a repost.
-- Quote posts require an original post and are intended to reject quote nesting.
+- Reposts require an `originalPostId` and are intended to reject reposting a repost.
+- Quote posts require an `originalPostId` and are intended to reject quote nesting.
 - PostgreSQL foreign keys require valid users and valid quote targets.
 
 These rules are enforced in entities/use cases only partially. The daily limit is a read-then-write check and is not safe under concurrent requests. Repost targets are not protected by a foreign key in the current schema.
@@ -151,7 +157,7 @@ Feeds return `posts` and `quotes` as separate arrays. They are not merged into o
 
 ## Known Gaps and Recommended Order
 
-1. Fix and test route validation; use consistent field names and return 400 for malformed input.
+1. Complete edge-case route validation and test all malformed inputs, boundaries, and no-write failures.
 2. Add authentication and derive the acting user from the authenticated identity instead of the request body.
 3. Return explicit not-found results and map them to 404 responses.
 4. Add a foreign key for `post.original_post_id` and validate target types explicitly.

@@ -30,17 +30,17 @@ const validateCache = (req: Request, res: Response, next: NextFunction) => {
 userRouterV1.post(
   "/v1/user/profile",
   (req: Request, res: Response, next: NextFunction) => {
-    req.params.cacheKey = `user|profile|${req.body.user}`;
+    req.params.cacheKey = `user|profile|${req.body.userId}`;
     return next();
   },
   validateCache,
   async (req: Request, res: Response) => {
     try {
-      if (req.body.user) {
-        return res.status(500).send({ success: false, message: 'Param "user" not found.' });
+      if (!req.body.userId) {
+        return res.status(400).send({ success: false, message: 'Param "userId" not found.' });
       }
 
-      const returnData = await controller.getUserProfile(req.body.user);
+      const returnData = await controller.getUserProfile(req.body.userId);
       cache.set(req.params.cacheKey, returnData);
 
       return res.send({ success: true, message: "Ok", data: returnData });
@@ -63,8 +63,8 @@ userRouterV1.get(
   validateCache,
   async (req: Request, res: Response) => {
     try {
-      if (req.params.username) {
-        return res.status(500).send({ success: false, message: 'Param "username" not found.' });
+      if (!req.params.username) {
+        return res.status(400).send({ success: false, message: 'Param "username" not found.' });
       }
 
       const user = await controller.getUserData(req.params.username);
