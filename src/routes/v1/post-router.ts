@@ -5,6 +5,11 @@ import { database } from "../connection";
 import PostRepositoryPostgreAdapter from "../../infra/adapters/PostRepositoryPostgreAdapter";
 import QuoteRepositoryPostgreAdapter from "../../infra/adapters/QuoteRepositoryPostgreAdapter";
 import PostController from "../../controllers/PostController";
+import {
+  validateFeedRequest,
+  validatePostRequest,
+  validateReferencedPostRequest,
+} from "../../middleware/validateRequest";
 
 const postRouterV1 = Router();
 const cache = new NodeCache({ stdTTL: 10, checkperiod: 20 }); // Numbers in seconds
@@ -16,6 +21,7 @@ const controller = new PostController(
 
 postRouterV1.post(
   "/v1/post/feed",
+  validateFeedRequest,
   // Set cache key
   (req: Request, res: Response, next: NextFunction) => {
     req.params.cacheKey = `post|homepage|${JSON.stringify({
@@ -23,6 +29,15 @@ postRouterV1.post(
       from: req.body.from,
       to: req.body.to,
     })}`;
+    return next();
+  },
+  (req: Request, res: Response, next: NextFunction) => {
+    if (req.body.userId && req.body.userId !== req.authenticatedUserId) {
+      return res
+        .status(403)
+        .send({ success: false, message: "User identity does not match token." });
+    }
+
     return next();
   },
   // Validate cache
@@ -53,17 +68,19 @@ postRouterV1.post(
   },
 );
 
-postRouterV1.post("/v1/post", async (req: Request, res: Response) => {
+postRouterV1.post("/v1/post", validatePostRequest, async (req: Request, res: Response) => {
   try {
-    if (!req.body.userId) {
-      return res.status(400).send({ success: false, message: 'Param "userId" not found.' });
+    if (req.body.userId && req.body.userId !== req.authenticatedUserId) {
+      return res
+        .status(403)
+        .send({ success: false, message: "User identity does not match token." });
     }
 
     if (!req.body.text) {
       return res.status(400).send({ success: false, message: 'Param "text" not found.' });
     }
 
-    await controller.doPost({ userId: req.body.userId, text: req.body.text });
+    await controller.doPost({ userId: req.authenticatedUserId!, text: req.body.text });
 
     return res.send({ success: true, message: "Ok" });
   } catch (error) {
@@ -75,10 +92,12 @@ postRouterV1.post("/v1/post", async (req: Request, res: Response) => {
   }
 });
 
-postRouterV1.post("/v1/repost", async (req: Request, res: Response) => {
+postRouterV1.post("/v1/repost", validateReferencedPostRequest, async (req: Request, res: Response) => {
   try {
-    if (!req.body.userId) {
-      return res.status(400).send({ success: false, message: 'Param "userId" not found.' });
+    if (req.body.userId && req.body.userId !== req.authenticatedUserId) {
+      return res
+        .status(403)
+        .send({ success: false, message: "User identity does not match token." });
     }
 
     if (!req.body.text) {
@@ -90,7 +109,7 @@ postRouterV1.post("/v1/repost", async (req: Request, res: Response) => {
     }
 
     await controller.doRepost({
-      userId: req.body.userId,
+      userId: req.authenticatedUserId!,
       text: req.body.text,
       postId: req.body.originalPostId,
     });
@@ -105,10 +124,12 @@ postRouterV1.post("/v1/repost", async (req: Request, res: Response) => {
   }
 });
 
-postRouterV1.post("/v1/quote-post", async (req: Request, res: Response) => {
+postRouterV1.post("/v1/quote-post", validateReferencedPostRequest, async (req: Request, res: Response) => {
   try {
-    if (!req.body.userId) {
-      return res.status(400).send({ success: false, message: 'Param "userId" not found.' });
+    if (req.body.userId && req.body.userId !== req.authenticatedUserId) {
+      return res
+        .status(403)
+        .send({ success: false, message: "User identity does not match token." });
     }
 
     if (!req.body.text) {
@@ -120,7 +141,7 @@ postRouterV1.post("/v1/quote-post", async (req: Request, res: Response) => {
     }
 
     await controller.doQuotePost({
-      userId: req.body.userId,
+      userId: req.authenticatedUserId!,
       text: req.body.text,
       postId: req.body.originalPostId,
     });
